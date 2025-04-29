@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>阿里云物联网数据展示</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: "Helvetica", sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    #dataBox {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 15px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .status {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>阿里云物联网数据展示平台</h1>
+  <div class="status" id="status">连接状态：未连接</div>
+  <h2>设备上传数据</h2>
+  <pre id="dataBox">等待数据中...</pre>
+
+  <script>
+    const config = {
+      host: "wss://iot-06z00c1sucbhlxa.mqtt.iothub.aliyuncs.com:443",
+      clientId: "k1dw7HnwDPL.ESP8266_WD|securemode=2,signmethod=hmacsha256,timestamp=1745913935792|",
+      username: "ESP8266_WD&k1dw7HnwDPL",
+      password: "7de50064a6b129de586f73455188144f7fef4a0c006d3684d520ee2e52536152",
+      pubTopic: "/sys/k1dw7HnwDPL/ESP8266_WD/thing/event/property/post",
+    };
+
+    const client = mqtt.connect(config.host, {
+      clientId: config.clientId,
+      username: config.username,
+      password: config.password,
+      keepalive: 60
+    });
+
+    const statusEl = document.getElementById("status");
+    const dataBox = document.getElementById("dataBox");
+
+    client.on("connect", () => {
+      statusEl.textContent = "连接状态：已连接 ✅";
+      console.log("已连接 MQTT");
+      client.subscribe(config.pubTopic, (err) => {
+        if (!err) {
+          console.log("订阅成功：" + config.pubTopic);
+        } else {
+          console.error("订阅失败", err);
+        }
+      });
+    });
+
+    client.on("error", (err) => {
+      statusEl.textContent = "连接状态：连接出错 ❌";
+      console.error("MQTT错误：", err);
+    });
+
+    client.on("message", (topic, message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log("接收到数据：", data);
+        dataBox.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        console.error("解析失败：", e);
+        dataBox.textContent = "非 JSON 数据：" + message.toString();
+      }
+    });
+  </script>
+</body>
+</html>
